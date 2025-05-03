@@ -1,6 +1,6 @@
 
-import { useState } from "react";
-import { Link } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -8,13 +8,35 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "@/components/ui/sonner";
 import { Loader2 } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 
 export default function Login() {
   const [isLoading, setIsLoading] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const navigate = useNavigate();
   
-  const handleLogin = (e: React.FormEvent) => {
+  useEffect(() => {
+    // Check if user is already logged in
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session) {
+        navigate('/');
+      }
+    });
+    
+    // Setup auth state listener
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (event, session) => {
+        if (session) {
+          navigate('/');
+        }
+      }
+    );
+    
+    return () => subscription.unsubscribe();
+  }, [navigate]);
+  
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!email || !password) {
@@ -24,14 +46,23 @@ export default function Login() {
     
     setIsLoading(true);
     
-    // Simulate login API call
-    setTimeout(() => {
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+      
+      if (error) throw error;
+      
+      toast("Successfully logged in!");
+    } catch (error: any) {
+      toast(`Error: ${error.message || 'An unknown error occurred'}`);
+    } finally {
       setIsLoading(false);
-      toast("This is a demo. Login functionality will be implemented with Supabase integration.");
-    }, 2000);
+    }
   };
   
-  const handleSignup = (e: React.FormEvent) => {
+  const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!email || !password) {
@@ -41,15 +72,35 @@ export default function Login() {
     
     setIsLoading(true);
     
-    // Simulate signup API call
-    setTimeout(() => {
+    try {
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+      });
+      
+      if (error) throw error;
+      
+      toast("Successfully signed up! Please check your email for verification.");
+    } catch (error: any) {
+      toast(`Error: ${error.message || 'An unknown error occurred'}`);
+    } finally {
       setIsLoading(false);
-      toast("This is a demo. Signup functionality will be implemented with Supabase integration.");
-    }, 2000);
+    }
   };
   
-  const handleSocialLogin = (provider: string) => {
-    toast(`${provider} login will be implemented with Supabase integration`);
+  const handleSocialLogin = async (provider: 'google') => {
+    try {
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider,
+        options: {
+          redirectTo: window.location.origin
+        }
+      });
+      
+      if (error) throw error;
+    } catch (error: any) {
+      toast(`Error: ${error.message || 'An unknown error occurred'}`);
+    }
   };
 
   return (
@@ -84,9 +135,6 @@ export default function Login() {
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
                     <Label htmlFor="password">Password</Label>
-                    <Link to="/forgot-password" className="text-sm text-humanize-600 hover:underline">
-                      Forgot password?
-                    </Link>
                   </div>
                   <Input 
                     id="password" 
@@ -119,12 +167,9 @@ export default function Login() {
                 </div>
               </div>
               
-              <div className="grid grid-cols-2 gap-4">
-                <Button variant="outline" onClick={() => handleSocialLogin("Google")}>
+              <div className="grid grid-cols-1 gap-4">
+                <Button variant="outline" onClick={() => handleSocialLogin("google")}>
                   Google
-                </Button>
-                <Button variant="outline" onClick={() => handleSocialLogin("Apple")}>
-                  Apple
                 </Button>
               </div>
             </CardContent>
@@ -183,25 +228,15 @@ export default function Login() {
                 </div>
               </div>
               
-              <div className="grid grid-cols-2 gap-4">
-                <Button variant="outline" onClick={() => handleSocialLogin("Google")}>
+              <div className="grid grid-cols-1 gap-4">
+                <Button variant="outline" onClick={() => handleSocialLogin("google")}>
                   Google
-                </Button>
-                <Button variant="outline" onClick={() => handleSocialLogin("Apple")}>
-                  Apple
                 </Button>
               </div>
             </CardContent>
             <CardFooter className="justify-center">
               <p className="text-xs text-muted-foreground text-center">
-                By creating an account, you agree to our 
-                <Link to="/terms" className="text-humanize-600 hover:underline mx-1">
-                  Terms of Service
-                </Link> 
-                and 
-                <Link to="/privacy" className="text-humanize-600 hover:underline mx-1">
-                  Privacy Policy
-                </Link>
+                By creating an account, you agree to our Terms of Service and Privacy Policy
               </p>
             </CardFooter>
           </TabsContent>
