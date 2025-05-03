@@ -9,18 +9,21 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "@/components/ui/sonner";
 import { Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 export default function Login() {
   const [isLoading, setIsLoading] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [activeTab, setActiveTab] = useState("login");
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const navigate = useNavigate();
   
   useEffect(() => {
     // Check if user is already logged in
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session) {
-        navigate('/');
+        navigate('/home');
       }
     });
     
@@ -28,7 +31,7 @@ export default function Login() {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
         if (session) {
-          navigate('/');
+          navigate('/home');
         }
       }
     );
@@ -38,6 +41,7 @@ export default function Login() {
   
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    setErrorMessage(null);
     
     if (!email || !password) {
       toast("Please fill in all fields");
@@ -55,7 +59,13 @@ export default function Login() {
       if (error) throw error;
       
       toast("Successfully logged in!");
+      navigate('/home');
     } catch (error: any) {
+      if (error.message === "Invalid login credentials") {
+        setErrorMessage("Invalid email or password. Please try again.");
+      } else {
+        setErrorMessage(error.message || 'An unknown error occurred');
+      }
       toast(`Error: ${error.message || 'An unknown error occurred'}`);
     } finally {
       setIsLoading(false);
@@ -64,6 +74,7 @@ export default function Login() {
   
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
+    setErrorMessage(null);
     
     if (!email || !password) {
       toast("Please fill in all fields");
@@ -73,16 +84,50 @@ export default function Login() {
     setIsLoading(true);
     
     try {
+      // Check if email already exists
+      const { data: { users }, error: lookupError } = await supabase.auth.admin.listUsers({
+        filter: {
+          email: email
+        }
+      }).catch(() => {
+        // If the admin API fails (which is expected in client-side code), 
+        // we'll proceed with sign-up and handle any errors there
+        return { data: { users: [] }, error: null };
+      });
+      
+      if (lookupError) {
+        // Continue with signup and let the server handle duplicate emails
+      } else if (users && users.length > 0) {
+        setErrorMessage("This email is already registered. Please log in instead.");
+        setActiveTab("login");
+        setIsLoading(false);
+        return;
+      }
+      
+      // Proceed with signup
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
       });
       
-      if (error) throw error;
-      
-      toast("Successfully signed up! Please check your email for verification.");
+      if (error) {
+        if (error.message.includes("already registered")) {
+          setErrorMessage("This email is already registered. Please log in instead.");
+          setActiveTab("login");
+        } else {
+          throw error;
+        }
+      } else {
+        toast("Successfully signed up! Please check your email for verification.");
+      }
     } catch (error: any) {
-      toast(`Error: ${error.message || 'An unknown error occurred'}`);
+      if (error.message.includes("already registered") || error.message.includes("already taken")) {
+        setErrorMessage("This email is already registered. Please log in instead.");
+        setActiveTab("login");
+      } else {
+        setErrorMessage(error.message || 'An unknown error occurred');
+        toast(`Error: ${error.message || 'An unknown error occurred'}`);
+      }
     } finally {
       setIsLoading(false);
     }
@@ -93,7 +138,7 @@ export default function Login() {
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider,
         options: {
-          redirectTo: window.location.origin
+          redirectTo: window.location.origin + '/home'
         }
       });
       
@@ -103,10 +148,16 @@ export default function Login() {
     }
   };
 
+  // Clear error when changing tabs
+  const handleTabChange = (value: string) => {
+    setErrorMessage(null);
+    setActiveTab(value);
+  };
+
   return (
     <div className="flex min-h-[calc(100vh-10rem)] items-center justify-center px-6 py-12">
       <Card className="w-full max-w-md">
-        <Tabs defaultValue="login">
+        <Tabs value={activeTab} onValueChange={handleTabChange}>
           <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="login">Login</TabsTrigger>
             <TabsTrigger value="signup">Sign Up</TabsTrigger>
@@ -120,6 +171,11 @@ export default function Login() {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
+              {errorMessage && (
+                <Alert variant="destructive" className="mb-4">
+                  <AlertDescription>{errorMessage}</AlertDescription>
+                </Alert>
+              )}
               <form onSubmit={handleLogin} className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="email">Email</Label>
@@ -183,6 +239,11 @@ export default function Login() {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
+              {errorMessage && (
+                <Alert variant="destructive" className="mb-4">
+                  <AlertDescription>{errorMessage}</AlertDescription>
+                </Alert>
+              )}
               <form onSubmit={handleSignup} className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="signup-email">Email</Label>

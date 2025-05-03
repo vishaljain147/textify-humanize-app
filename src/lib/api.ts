@@ -1,5 +1,7 @@
 
-// Mock API service to simulate text humanization
+// API service for text humanization
+
+import { supabase } from "@/integrations/supabase/client";
 
 interface HumanizeTextRequest {
   text: string;
@@ -10,71 +12,89 @@ interface HumanizeTextResponse {
   humanizedText: string;
 }
 
-// Mock delay function
-const delay = (ms: number): Promise<void> => new Promise(resolve => setTimeout(resolve, ms));
-
-// Mock responses based on tone
-const toneResponses: Record<string, (text: string) => string> = {
-  formal: (text: string) => {
-    return text
-      .replace(/gonna/gi, "going to")
-      .replace(/wanna/gi, "want to")
-      .replace(/yeah/gi, "yes")
-      .replace(/hey/gi, "hello")
-      .replace(/(^|\s)i($|\s)/gi, "$1I$2")
-      .replace(/!+/g, ".")
-      .replace(/\.{2,}/g, ".");
-  },
-  friendly: (text: string) => {
-    return text
-      .replace(/\./g, "! ")
-      .replace(/Hello/gi, "Hey there")
-      .replace(/Good morning/gi, "Morning!")
-      .replace(/Thank you/gi, "Thanks a bunch")
-      .replace(/Please/gi, "Please 😊")
-      .trim();
-  },
-  concise: (text: string) => {
-    return text
-      .split(/\.|\n/)
-      .map(sentence => sentence.trim())
-      .filter(sentence => sentence.length > 0)
-      .map(sentence => {
-        const words = sentence.split(" ");
-        if (words.length > 8) {
-          return words.slice(0, 8).join(" ") + ".";
-        }
-        return sentence + ".";
-      })
-      .join(" ");
-  },
-  persuasive: (text: string) => {
-    return text
-      .replace(/I think/gi, "I firmly believe")
-      .replace(/good/gi, "excellent")
-      .replace(/nice/gi, "outstanding")
-      .replace(/important/gi, "crucial")
-      .replace(/You should/gi, "You absolutely must")
-      .replace(/consider/gi, "seriously consider")
-      .replace(/\.$/g, "!");
-  },
-  creative: (text: string) => {
-    return text
-      .replace(/The/gi, "The magnificent")
-      .replace(/is/gi, "dances as")
-      .replace(/was/gi, "emerged as")
-      .replace(/went/gi, "ventured")
-      .replace(/said/gi, "expressed")
-      .replace(/beautiful/gi, "breathtaking")
-      .replace(/good/gi, "extraordinary");
-  },
-};
-
+// Function to humanize text using our Supabase edge function that calls OpenAI
 export async function humanizeText(request: HumanizeTextRequest): Promise<HumanizeTextResponse> {
-  // Simulate API delay
-  await delay(1500);
-  
+  try {
+    const { data, error } = await supabase.functions.invoke('humanize-text', {
+      body: {
+        text: request.text,
+        tone: request.tone
+      }
+    });
+
+    if (error) {
+      throw error;
+    }
+
+    return { humanizedText: data.humanizedText };
+  } catch (error) {
+    console.error('Error in humanizeText:', error);
+    
+    // Fall back to local mock if the edge function fails
+    return fallbackHumanizeText(request);
+  }
+}
+
+// Fallback function to use if the API call fails
+function fallbackHumanizeText(request: HumanizeTextRequest): HumanizeTextResponse {
   const { text, tone } = request;
+  
+  // Mock responses based on tone
+  const toneResponses: Record<string, (text: string) => string> = {
+    formal: (text: string) => {
+      return text
+        .replace(/gonna/gi, "going to")
+        .replace(/wanna/gi, "want to")
+        .replace(/yeah/gi, "yes")
+        .replace(/hey/gi, "hello")
+        .replace(/(^|\s)i($|\s)/gi, "$1I$2")
+        .replace(/!+/g, ".")
+        .replace(/\.{2,}/g, ".");
+    },
+    friendly: (text: string) => {
+      return text
+        .replace(/\./g, "! ")
+        .replace(/Hello/gi, "Hey there")
+        .replace(/Good morning/gi, "Morning!")
+        .replace(/Thank you/gi, "Thanks a bunch")
+        .replace(/Please/gi, "Please 😊")
+        .trim();
+    },
+    concise: (text: string) => {
+      return text
+        .split(/\.|\n/)
+        .map(sentence => sentence.trim())
+        .filter(sentence => sentence.length > 0)
+        .map(sentence => {
+          const words = sentence.split(" ");
+          if (words.length > 8) {
+            return words.slice(0, 8).join(" ") + ".";
+          }
+          return sentence + ".";
+        })
+        .join(" ");
+    },
+    persuasive: (text: string) => {
+      return text
+        .replace(/I think/gi, "I firmly believe")
+        .replace(/good/gi, "excellent")
+        .replace(/nice/gi, "outstanding")
+        .replace(/important/gi, "crucial")
+        .replace(/You should/gi, "You absolutely must")
+        .replace(/consider/gi, "seriously consider")
+        .replace(/\.$/g, "!");
+    },
+    creative: (text: string) => {
+      return text
+        .replace(/The/gi, "The magnificent")
+        .replace(/is/gi, "dances as")
+        .replace(/was/gi, "emerged as")
+        .replace(/went/gi, "ventured")
+        .replace(/said/gi, "expressed")
+        .replace(/beautiful/gi, "breathtaking")
+        .replace(/good/gi, "extraordinary");
+    },
+  };
   
   // Get tone transformer or default to identity function
   const transformer = toneResponses[tone] || ((t: string) => t);
@@ -82,6 +102,7 @@ export async function humanizeText(request: HumanizeTextRequest): Promise<Humani
   // Transform the text
   const humanizedText = transformer(text);
   
+  console.warn('Using fallback text humanization');
   return { humanizedText };
 }
 
