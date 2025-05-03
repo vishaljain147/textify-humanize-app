@@ -1,3 +1,4 @@
+
 import type { Config } from "tailwindcss";
 
 export default {
@@ -52,16 +53,20 @@ export default {
 					DEFAULT: 'hsl(var(--card))',
 					foreground: 'hsl(var(--card-foreground))'
 				},
-				sidebar: {
-					DEFAULT: 'hsl(var(--sidebar-background))',
-					foreground: 'hsl(var(--sidebar-foreground))',
-					primary: 'hsl(var(--sidebar-primary))',
-					'primary-foreground': 'hsl(var(--sidebar-primary-foreground))',
-					accent: 'hsl(var(--sidebar-accent))',
-					'accent-foreground': 'hsl(var(--sidebar-accent-foreground))',
-					border: 'hsl(var(--sidebar-border))',
-					ring: 'hsl(var(--sidebar-ring))'
-				}
+				// Custom colors for our app
+				humanize: {
+					50: '#eef2ff',
+					100: '#e0e7ff',
+					200: '#c7d2fe',
+					300: '#a5b4fc',
+					400: '#818cf8',
+					500: '#6366f1',
+					600: '#4f46e5',
+					700: '#4338ca',
+					800: '#3730a3',
+					900: '#312e81',
+					950: '#1e1b4b',
+				},
 			},
 			borderRadius: {
 				lg: 'var(--radius)',
@@ -70,25 +75,34 @@ export default {
 			},
 			keyframes: {
 				'accordion-down': {
-					from: {
-						height: '0'
-					},
-					to: {
-						height: 'var(--radix-accordion-content-height)'
-					}
+					from: { height: '0' },
+					to: { height: 'var(--radix-accordion-content-height)' }
 				},
 				'accordion-up': {
-					from: {
-						height: 'var(--radix-accordion-content-height)'
+					from: { height: 'var(--radix-accordion-content-height)' },
+					to: { height: '0' }
+				},
+				typing: {
+					from: { width: '0' },
+					to: { width: '100%' }
+				},
+				'blink-caret': {
+					from: { borderColor: 'transparent' },
+					to: { borderColor: 'transparent' },
+					'50%': { borderColor: 'currentColor' }
+				},
+				shimmer: {
+					'100%': {
+						transform: 'translateX(100%)',
 					},
-					to: {
-						height: '0'
-					}
-				}
+				},
 			},
 			animation: {
 				'accordion-down': 'accordion-down 0.2s ease-out',
-				'accordion-up': 'accordion-up 0.2s ease-out'
+				'accordion-up': 'accordion-up 0.2s ease-out',
+				'typing': 'typing 2s steps(40, end)',
+				'blink-caret': 'blink-caret 0.75s step-end infinite',
+				shimmer: 'shimmer 2s infinite',
 			}
 		}
 	},
