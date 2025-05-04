@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -9,6 +8,7 @@ import { Loader2 } from "lucide-react";
 import { humanizeText, saveTextEntry } from "@/lib/api";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
+import { useResponsiveUI } from "@/hooks/useResponsiveUI";
 
 export default function TextHumanizer() {
   const [inputText, setInputText] = useState('');
@@ -16,6 +16,7 @@ export default function TextHumanizer() {
   const [selectedTone, setSelectedTone] = useState('formal');
   const [isProcessing, setIsProcessing] = useState(false);
   const { user } = useAuth();
+  const { isMobile } = useResponsiveUI();
 
   const preprocessText = (text: string): string => {
     // Simple NLP preprocessing
@@ -101,14 +102,14 @@ export default function TextHumanizer() {
   };
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 max-w-6xl mx-auto">
+    <div className={`grid grid-cols-1 ${isMobile ? '' : 'lg:grid-cols-2'} gap-6 max-w-6xl mx-auto`}>
       <Card>
         <CardContent className="pt-6">
           <div className="space-y-4">
             <h2 className="text-xl font-semibold">Original Text</h2>
             <Textarea
               placeholder="Enter your text here..."
-              className="min-h-[200px]"
+              className="min-h-[150px] md:min-h-[200px]"
               value={inputText}
               onChange={(e) => setInputText(e.target.value)}
             />
@@ -139,7 +140,7 @@ export default function TextHumanizer() {
             <h2 className="text-xl font-semibold">Humanized Text</h2>
             <Textarea
               placeholder="Humanized text will appear here..."
-              className="min-h-[200px]"
+              className="min-h-[150px] md:min-h-[200px]"
               value={outputText}
               readOnly
             />

@@ -1,6 +1,7 @@
 
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { useResponsiveUI } from "@/hooks/useResponsiveUI";
 
 type ToneSelectorProps = {
   selectedTone: string;
@@ -8,6 +9,8 @@ type ToneSelectorProps = {
 };
 
 export default function ToneSelector({ selectedTone, onChange }: ToneSelectorProps) {
+  const { isMobile } = useResponsiveUI();
+  
   const tones = [
     { value: "formal", label: "Formal" },
     { value: "friendly", label: "Friendly" },
@@ -22,7 +25,7 @@ export default function ToneSelector({ selectedTone, onChange }: ToneSelectorPro
       <RadioGroup 
         value={selectedTone} 
         onValueChange={onChange}
-        className="flex flex-wrap gap-2"
+        className={`flex ${isMobile ? 'flex-col gap-2' : 'flex-wrap gap-2'}`}
       >
         {tones.map((tone) => (
           <div key={tone.value} className="flex items-center space-x-2">
@@ -33,7 +36,7 @@ export default function ToneSelector({ selectedTone, onChange }: ToneSelectorPro
             />
             <Label
               htmlFor={`tone-${tone.value}`}
-              className="flex cursor-pointer items-center rounded-md border-2 border-muted px-3 py-2 peer-data-[state=checked]:border-primary hover:bg-accent"
+              className="flex cursor-pointer items-center rounded-md border-2 border-muted px-3 py-2 text-sm peer-data-[state=checked]:border-primary hover:bg-accent"
             >
               {tone.label}
             </Label>

@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "@/components/ui/sonner";
 import { Copy, Heart, Share } from "lucide-react";
+import { useResponsiveUI } from "@/hooks/useResponsiveUI";
 
 type OutputCardProps = {
   output: string;
@@ -20,6 +21,7 @@ export default function OutputCard({
   isFavorite = false,
   onFavoriteToggle
 }: OutputCardProps) {
+  const { isMobile } = useResponsiveUI();
   
   const copyToClipboard = () => {
     navigator.clipboard.writeText(output);
@@ -45,16 +47,16 @@ export default function OutputCard({
 
   return (
     <Card className="w-full">
-      <CardHeader>
+      <CardHeader className={isMobile ? "px-4 py-3" : ""}>
         <CardTitle className="flex justify-between items-center">
           <span className="text-sm md:text-base">Humanized Text ({tone})</span>
           <span className="text-xs text-muted-foreground">{timestamp}</span>
         </CardTitle>
       </CardHeader>
-      <CardContent>
+      <CardContent className={isMobile ? "px-4 py-2" : ""}>
         <p className="whitespace-pre-wrap">{output}</p>
       </CardContent>
-      <CardFooter className="flex justify-end space-x-2">
+      <CardFooter className={`flex justify-end space-x-2 ${isMobile ? "px-4 py-3" : ""}`}>
         {onFavoriteToggle && (
           <Button 
             variant="ghost" 
