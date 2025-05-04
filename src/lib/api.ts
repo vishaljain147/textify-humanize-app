@@ -1,4 +1,3 @@
-
 // API service for text humanization
 
 import { supabase } from "@/integrations/supabase/client";
@@ -10,11 +9,14 @@ interface HumanizeTextRequest {
 
 interface HumanizeTextResponse {
   humanizedText: string;
+  source?: 'api' | 'fallback';
 }
 
 // Function to humanize text using our Supabase edge function that calls OpenAI
 export async function humanizeText(request: HumanizeTextRequest): Promise<HumanizeTextResponse> {
   try {
+    console.log('Calling humanize-text edge function with tone:', request.tone);
+    
     const { data, error } = await supabase.functions.invoke('humanize-text', {
       body: {
         text: request.text,
@@ -23,15 +25,19 @@ export async function humanizeText(request: HumanizeTextRequest): Promise<Humani
     });
 
     if (error) {
+      console.error('Edge function error:', error);
       throw error;
     }
 
-    return { humanizedText: data.humanizedText };
+    console.log('Edge function response received successfully');
+    return { humanizedText: data.humanizedText, source: 'api' };
   } catch (error) {
     console.error('Error in humanizeText:', error);
+    console.log('Falling back to local humanization');
     
     // Fall back to local mock if the edge function fails
-    return fallbackHumanizeText(request);
+    const fallbackResult = fallbackHumanizeText(request);
+    return { ...fallbackResult, source: 'fallback' };
   }
 }
 

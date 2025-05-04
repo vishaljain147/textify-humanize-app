@@ -48,6 +48,10 @@ serve(async (req) => {
     console.log(`Processing text with tone: ${tone}`);
     console.log(`System prompt: ${systemPrompt.substring(0, 50)}...`);
 
+    if (!OPENAI_API_KEY) {
+      throw new Error('OpenAI API key is not configured');
+    }
+
     // Call OpenAI API
     const response = await fetch("https://api.openai.com/v1/chat/completions", {
       method: "POST",
@@ -84,7 +88,12 @@ serve(async (req) => {
 
     return new Response(
       JSON.stringify({
-        humanizedText
+        humanizedText,
+        meta: {
+          model: "gpt-4o-mini",
+          tone,
+          timestamp: new Date().toISOString(),
+        }
       }),
       {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
