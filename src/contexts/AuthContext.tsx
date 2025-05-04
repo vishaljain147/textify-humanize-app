@@ -1,6 +1,8 @@
+
 import { createContext, useState, useContext, useEffect, ReactNode } from 'react';
 import { Session, User } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
+import { storage, jsonStorage } from '@/lib/storage';
 
 type AuthContextType = {
   session: Session | null;
@@ -19,23 +21,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     // Set up auth state listener first
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, currentSession) => {
+      async (event, currentSession) => {
         setSession(currentSession);
         setUser(currentSession?.user ?? null);
         
         if (currentSession?.user) {
-          // Store profile in localStorage for persistence
-          localStorage.setItem('user_profile', JSON.stringify({
+          // Store profile in storage for persistence
+          await jsonStorage.setItem('user_profile', {
             id: currentSession.user.id,
             email: currentSession.user.email,
             last_sign_in: new Date().toISOString()
-          }));
+          });
           
           // Create or update user profile in Supabase
           updateUserProfile(currentSession.user);
         } else if (event === 'SIGNED_OUT') {
           // Clear local profile on sign out
-          localStorage.removeItem('user_profile');
+          await storage.removeItem('user_profile');
         }
         
         setIsLoading(false);
@@ -43,13 +45,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     );
 
     // Then check for existing session
-    supabase.auth.getSession().then(({ data: { session: currentSession } }) => {
+    supabase.auth.getSession().then(async ({ data: { session: currentSession } }) => {
       setSession(currentSession);
       setUser(currentSession?.user ?? null);
       
       // Check for stored profile if no active session
       if (!currentSession?.user) {
-        const storedProfile = localStorage.getItem('user_profile');
+        const storedProfile = await jsonStorage.getItem('user_profile');
         if (storedProfile) {
           // We have a stored profile but no active session
           // This could mean the session expired, so we don't use the profile
@@ -85,7 +87,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signOut = async () => {
     await supabase.auth.signOut();
-    localStorage.removeItem('user_profile'); // Ensure profile is cleared
+    await storage.removeItem('user_profile'); // Ensure profile is cleared
   };
 
   const value = {

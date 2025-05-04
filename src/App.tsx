@@ -13,6 +13,7 @@ import Login from "./pages/Login";
 import Home from "./pages/Home";
 import NotFound from "./pages/NotFound";
 import { AuthProvider } from "./contexts/AuthContext";
+import MobileLayout from "./components/MobileLayout";
 
 const queryClient = new QueryClient();
 
@@ -26,14 +27,16 @@ const App = () => (
           <div className="flex flex-col min-h-screen">
             <Header />
             <main className="flex-1">
-              <Routes>
-                <Route path="/" element={<Index />} />
-                <Route path="/home" element={<Home />} />
-                <Route path="/history" element={<History />} />
-                <Route path="/settings" element={<Settings />} />
-                <Route path="/login" element={<Login />} />
-                <Route path="*" element={<NotFound />} />
-              </Routes>
+              <MobileLayout>
+                <Routes>
+                  <Route path="/" element={<Index />} />
+                  <Route path="/home" element={<Home />} />
+                  <Route path="/history" element={<History />} />
+                  <Route path="/settings" element={<Settings />} />
+                  <Route path="/login" element={<Login />} />
+                  <Route path="*" element={<NotFound />} />
+                </Routes>
+              </MobileLayout>
             </main>
             <Footer />
           </div>
