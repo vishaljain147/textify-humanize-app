@@ -45,6 +45,9 @@ serve(async (req) => {
         systemPrompt += " Rewrite the following text to sound more natural and human-written.";
     }
 
+    console.log(`Processing text with tone: ${tone}`);
+    console.log(`System prompt: ${systemPrompt.substring(0, 50)}...`);
+
     // Call OpenAI API
     const response = await fetch("https://api.openai.com/v1/chat/completions", {
       method: "POST",
@@ -72,10 +75,12 @@ serve(async (req) => {
     const data = await response.json();
     
     if (!response.ok) {
+      console.error("OpenAI API error:", data.error);
       throw new Error(data.error?.message || 'OpenAI API error');
     }
 
     const humanizedText = data.choices[0].message.content;
+    console.log("Successfully humanized text");
 
     return new Response(
       JSON.stringify({
