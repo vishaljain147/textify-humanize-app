@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -84,38 +83,18 @@ export default function Login() {
     setIsLoading(true);
     
     try {
-      // Check if email already exists
-      const { data: { users }, error: lookupError } = await supabase.auth.admin.listUsers({
-        filter: {
-          email: email
-        }
-      }).catch(() => {
-        // If the admin API fails (which is expected in client-side code), 
-        // we'll proceed with sign-up and handle any errors there
-        return { data: { users: [] }, error: null };
-      });
-      
-      if (lookupError) {
-        // Continue with signup and let the server handle duplicate emails
-      } else if (users && users.length > 0) {
-        setErrorMessage("This email is already registered. Please log in instead.");
-        setActiveTab("login");
-        setIsLoading(false);
-        return;
-      }
-      
-      // Proceed with signup
-      const { data, error } = await supabase.auth.signUp({
+      // Check if email already exists - removed the problematic filter property
+      const { data, error: signUpError } = await supabase.auth.signUp({
         email,
         password,
       });
       
-      if (error) {
-        if (error.message.includes("already registered")) {
+      if (signUpError) {
+        if (signUpError.message.includes("already registered")) {
           setErrorMessage("This email is already registered. Please log in instead.");
           setActiveTab("login");
         } else {
-          throw error;
+          throw signUpError;
         }
       } else {
         toast("Successfully signed up! Please check your email for verification.");
