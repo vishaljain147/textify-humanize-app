@@ -5,11 +5,12 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import ToneSelector from "@/components/ToneSelector";
 import { toast } from "@/components/ui/sonner";
-import { Loader2, RefreshCw } from "lucide-react";
+import { Loader2, RefreshCw, AlertTriangle, Check } from "lucide-react";
 import { humanizeText, saveTextEntry } from "@/lib/api";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useResponsiveUI } from "@/hooks/useResponsiveUI";
+import { Progress } from "@/components/ui/progress";
 
 export default function TextHumanizer() {
   const [inputText, setInputText] = useState('');
@@ -21,6 +22,7 @@ export default function TextHumanizer() {
     source?: 'api' | 'fallback';
     wordCount?: { original: number; humanized: number };
     similarity?: number;
+    plagiarismLevel?: number;
   } | null>(null);
   const { user } = useAuth();
   const { isMobile } = useResponsiveUI();
@@ -94,7 +96,8 @@ export default function TextHumanizer() {
         processingTime,
         source: result.source || 'api',
         wordCount,
-        similarity
+        similarity,
+        plagiarismLevel: result.plagiarismLevel || 1
       });
 
       // Save to database if logged in
@@ -103,7 +106,8 @@ export default function TextHumanizer() {
           user_id: user.id,
           original_text: inputText,
           humanized_text: result.humanizedText,
-          tone: selectedTone
+          tone: selectedTone,
+          plagiarism_level: result.plagiarismLevel || 1
         });
         
         if (error) {
@@ -115,7 +119,8 @@ export default function TextHumanizer() {
           originalText: inputText,
           humanizedText: result.humanizedText,
           tone: selectedTone,
-          isFavorite: false
+          isFavorite: false,
+          plagiarismLevel: result.plagiarismLevel || 1
         });
       }
       
@@ -140,6 +145,25 @@ export default function TextHumanizer() {
         console.error('Error copying text:', err);
         toast("Failed to copy text");
       });
+  };
+  
+  const getPlagiarismLevelColor = (level: number) => {
+    if (level <= 3) return "bg-green-500";
+    if (level <= 6) return "bg-yellow-500";
+    return "bg-red-500";
+  };
+  
+  const getPlagiarismLevelText = (level: number) => {
+    if (level <= 2) return "Very Low";
+    if (level <= 4) return "Low";
+    if (level <= 6) return "Moderate";
+    if (level <= 8) return "High";
+    return "Very High";
+  };
+  
+  const getPlagiarismIcon = (level: number) => {
+    if (level <= 4) return <Check className="h-4 w-4 text-green-500" />;
+    return <AlertTriangle className="h-4 w-4 text-yellow-500" />;
   };
 
   return (
@@ -202,7 +226,7 @@ export default function TextHumanizer() {
             />
             
             {responseStats && (
-              <div className="text-sm border rounded-md p-3 bg-muted/50">
+              <div className="text-sm border rounded-md p-3 bg-muted/50 space-y-3">
                 <h3 className="font-medium mb-1">Analysis</h3>
                 <div className="grid grid-cols-2 gap-2">
                   <div>Processing time: <span className="font-medium">{responseStats.processingTime}ms</span></div>
@@ -210,6 +234,29 @@ export default function TextHumanizer() {
                   <div>Original words: <span className="font-medium">{responseStats.wordCount?.original}</span></div>
                   <div>Humanized words: <span className="font-medium">{responseStats.wordCount?.humanized}</span></div>
                 </div>
+                
+                {responseStats.plagiarismLevel !== undefined && (
+                  <div className="space-y-2 pt-1 border-t">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-1.5">
+                        {getPlagiarismIcon(responseStats.plagiarismLevel)}
+                        <span>Plagiarism Level: <span className="font-medium">{getPlagiarismLevelText(responseStats.plagiarismLevel)}</span></span>
+                      </div>
+                      <span className="text-xs">{responseStats.plagiarismLevel}/10</span>
+                    </div>
+                    <Progress 
+                      value={responseStats.plagiarismLevel * 10} 
+                      className={`h-1.5 ${getPlagiarismLevelColor(responseStats.plagiarismLevel)}`}
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      {responseStats.plagiarismLevel <= 3 
+                        ? "This text appears highly original and unique." 
+                        : responseStats.plagiarismLevel <= 6 
+                          ? "This text contains some common phrases but is mostly original." 
+                          : "This text may contain significant portions that match existing content."}
+                    </p>
+                  </div>
+                )}
               </div>
             )}
             

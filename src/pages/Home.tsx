@@ -21,7 +21,7 @@ export default function Home() {
         <div className="text-center space-y-2">
           <h1 className={`${isMobile ? 'text-3xl' : 'text-4xl'} font-bold`}>AI Text Humanizer</h1>
           <p className="text-base md:text-lg text-muted-foreground">
-            Transform robotic or AI-generated text into natural, human-like writing
+            Transform robotic or AI-generated text into natural, human-like writing with plagiarism detection
           </p>
         </div>
         

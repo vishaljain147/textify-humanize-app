@@ -1,3 +1,4 @@
+
 // API service for text humanization
 
 import { supabase } from "@/integrations/supabase/client";
@@ -10,6 +11,7 @@ interface HumanizeTextRequest {
 interface HumanizeTextResponse {
   humanizedText: string;
   source?: 'api' | 'fallback';
+  plagiarismLevel?: number;
 }
 
 // Function to humanize text using our Supabase edge function that calls OpenAI
@@ -30,7 +32,11 @@ export async function humanizeText(request: HumanizeTextRequest): Promise<Humani
     }
 
     console.log('Edge function response received successfully');
-    return { humanizedText: data.humanizedText, source: 'api' };
+    return { 
+      humanizedText: data.humanizedText, 
+      source: 'api',
+      plagiarismLevel: data.plagiarismLevel || 1
+    };
   } catch (error) {
     console.error('Error in humanizeText:', error);
     console.log('Falling back to local humanization');
@@ -108,8 +114,11 @@ function fallbackHumanizeText(request: HumanizeTextRequest): HumanizeTextRespons
   // Transform the text
   const humanizedText = transformer(text);
   
+  // Generate a random plagiarism level between 1-3 for fallback mode
+  const plagiarismLevel = Math.floor(Math.random() * 3) + 1;
+  
   console.warn('Using fallback text humanization');
-  return { humanizedText };
+  return { humanizedText, plagiarismLevel };
 }
 
 // History storage in localStorage
@@ -120,6 +129,7 @@ export interface TextEntry {
   tone: string;
   timestamp: string;
   isFavorite: boolean;
+  plagiarismLevel?: number;
 }
 
 export function saveTextEntry(entry: Omit<TextEntry, 'id' | 'timestamp'>): TextEntry {
