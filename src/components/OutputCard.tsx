@@ -3,9 +3,15 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "@/components/ui/sonner";
-import { Copy, Heart, Share, AlertTriangle, Check } from "lucide-react";
+import { Copy, Heart, Share, AlertTriangle, Check, Info } from "lucide-react";
 import { useResponsiveUI } from "@/hooks/useResponsiveUI";
 import { Progress } from "@/components/ui/progress";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 type OutputCardProps = {
   output: string;
@@ -67,6 +73,16 @@ export default function OutputCard({
     return <AlertTriangle className="h-4 w-4 text-yellow-500" />;
   };
 
+  const getPlagiarismTip = (level: number) => {
+    if (level <= 3) {
+      return "This text appears highly original and is unlikely to be flagged for plagiarism.";
+    } else if (level <= 6) {
+      return "This text contains some common phrases but is mostly original. Consider reviewing any academic or specialized content.";
+    } else {
+      return "This text may contain significant portions that match existing content. Consider revising unique phrases or citing sources.";
+    }
+  };
+
   return (
     <Card className="w-full">
       <CardHeader className={isMobile ? "px-4 py-3" : ""}>
@@ -84,6 +100,19 @@ export default function OutputCard({
               <div className="flex items-center gap-1.5">
                 {getPlagiarismIcon(plagiarismLevel)}
                 <span className="text-sm">Plagiarism: <span className="font-medium">{getPlagiarismLevelText(plagiarismLevel)}</span></span>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button variant="ghost" size="icon" className="h-5 w-5 rounded-full p-0">
+                        <Info className="h-3 w-3" />
+                        <span className="sr-only">More info</span>
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p className="max-w-xs">{getPlagiarismTip(plagiarismLevel)}</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
               </div>
               <span className="text-xs">{plagiarismLevel}/10</span>
             </div>
