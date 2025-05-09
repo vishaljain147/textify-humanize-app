@@ -1,4 +1,3 @@
-
 // API service for text humanization
 
 import { supabase } from "@/integrations/supabase/client";
@@ -521,6 +520,49 @@ function fallbackHumanizeText(request: HumanizeTextRequest): HumanizeTextRespons
   
   console.warn('Using fallback text humanization');
   return { humanizedText, plagiarismLevel };
+}
+
+// New function to check plagiarism using Undetectable AI
+export interface PlagiarismResult {
+  plagiarismLevel: number;
+  plagiarizedSections: {
+    text: string;
+    score: number;
+    startIndex: number;
+    endIndex: number;
+  }[];
+  originalScore: number;
+}
+
+export async function checkPlagiarism(text: string): Promise<PlagiarismResult> {
+  try {
+    console.log('Calling check-plagiarism edge function');
+    
+    const { data, error } = await supabase.functions.invoke('check-plagiarism', {
+      body: { text }
+    });
+
+    if (error) {
+      console.error('Edge function error:', error);
+      throw error;
+    }
+
+    console.log('Plagiarism check completed successfully');
+    return {
+      plagiarismLevel: data.plagiarismLevel || 1,
+      plagiarizedSections: data.plagiarizedSections || [],
+      originalScore: data.originalScore || 0
+    };
+  } catch (error) {
+    console.error('Error in checkPlagiarism:', error);
+    
+    // Return simple fallback result with low plagiarism score
+    return {
+      plagiarismLevel: 1, // Low plagiarism level as fallback
+      plagiarizedSections: [],
+      originalScore: 0
+    };
+  }
 }
 
 // History storage in localStorage
