@@ -131,8 +131,7 @@ function fallbackHumanizeText(request: HumanizeTextRequest): HumanizeTextRespons
       let result = text;
       for (const [pattern, replacements] of Object.entries(formalReplacements)) {
         // Create RegExp from string pattern, adding flags as needed
-        const flags = pattern.includes("\\s") || pattern.includes("^") || pattern.includes("$") ? "gi" : "gi";
-        const regex = new RegExp(pattern, flags);
+        const regex = new RegExp(pattern, 'gi');
         result = result.replace(regex, () => getRandomSynonym(replacements));
       }
       
