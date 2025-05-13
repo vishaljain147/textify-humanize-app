@@ -19,7 +19,8 @@ if (Capacitor.isNativePlatform()) {
   
   // Set keyboard behavior
   Keyboard.setAccessoryBarVisible({ isVisible: false });
-  Keyboard.setResizeMode({ mode: 'body' });
+  // Fix: Use correct enum value for resize mode
+  Keyboard.setResizeMode({ mode: "body" as any });
   
   console.log('Running on platform:', Capacitor.getPlatform());
 }
