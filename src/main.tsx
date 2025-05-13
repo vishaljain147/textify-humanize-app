@@ -3,7 +3,7 @@ import { createRoot } from 'react-dom/client';
 import App from './App.tsx';
 import './index.css';
 import { SplashScreen } from '@capacitor/splash-screen';
-import { StatusBar } from '@capacitor/status-bar';
+import { StatusBar, Style } from '@capacitor/status-bar';
 import { Keyboard } from '@capacitor/keyboard';
 import { Capacitor } from '@capacitor/core';
 
@@ -15,7 +15,7 @@ if (Capacitor.isNativePlatform()) {
   });
   
   // Set status bar style
-  StatusBar.setStyle({ style: 'light' });
+  StatusBar.setStyle({ style: Style.Light });
   
   // Set keyboard behavior
   Keyboard.setAccessoryBarVisible({ isVisible: false });
