@@ -1,99 +1,133 @@
 
-import React from 'react';
-import { Link } from 'react-router-dom';
-import { useResponsiveUI } from '@/hooks/useResponsiveUI';
-import { Button } from '@/components/ui/button';
-import { useAuth } from '@/contexts/AuthContext';
-import { ThemeToggle } from '@/components/ThemeToggle';
-import { Home, History, Settings, Menu, X } from 'lucide-react';
-import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
+import { Link, useNavigate } from "react-router-dom";
+import { Button } from "@/components/ui/button";
+import { ThemeToggle } from "@/components/ThemeToggle";
+import { useAuth } from "@/contexts/AuthContext";
+import { toast } from "@/components/ui/sonner";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { 
+  DropdownMenu, 
+  DropdownMenuTrigger, 
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator 
+} from "@/components/ui/dropdown-menu";
+import { Menu } from "lucide-react";
+import { useState } from "react";
+import { useResponsiveUI } from "@/hooks/useResponsiveUI";
 
 export default function Header() {
+  const { user, signOut } = useAuth();
+  const navigate = useNavigate();
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { isMobile } = useResponsiveUI();
-  const { user, isLoading } = useAuth();
-  const [isMenuOpen, setIsMenuOpen] = React.useState(false);
-  
-  const menuItems = [
-    { to: '/', label: 'Home', icon: <Home className="h-4 w-4 mr-2" /> },
-    { to: '/history', label: 'History', icon: <History className="h-4 w-4 mr-2" /> },
-    { to: '/settings', label: 'Settings', icon: <Settings className="h-4 w-4 mr-2" /> }
-  ];
-  
-  const MobileMenu = () => (
-    <Sheet open={isMenuOpen} onOpenChange={setIsMenuOpen}>
-      <SheetTrigger asChild>
-        <Button variant="ghost" size="icon">
-          <Menu className="h-5 w-5" />
-          <span className="sr-only">Toggle menu</span>
-        </Button>
-      </SheetTrigger>
-      <SheetContent side="left" className="w-[240px] sm:w-[300px]">
-        <div className="flex flex-col gap-6 py-4">
-          <div className="flex items-center justify-between">
-            <h2 className="text-lg font-semibold">Menu</h2>
-            <Button variant="ghost" size="icon" onClick={() => setIsMenuOpen(false)}>
-              <X className="h-4 w-4" />
-            </Button>
-          </div>
-          <nav className="flex flex-col gap-2">
-            {menuItems.map((item) => (
-              <Button
-                key={item.to}
-                variant="ghost"
-                className="justify-start"
-                asChild
-                onClick={() => setIsMenuOpen(false)}
-              >
-                <Link to={item.to} className="flex items-center">
-                  {item.icon}
-                  {item.label}
-                </Link>
-              </Button>
-            ))}
-          </nav>
-          <div className="mt-auto">
-            <ThemeToggle />
-          </div>
-        </div>
-      </SheetContent>
-    </Sheet>
-  );
+
+  const handleSignOut = async () => {
+    try {
+      await signOut();
+      toast("Successfully signed out");
+      navigate('/');
+    } catch (error) {
+      toast("Error signing out");
+      console.error("Sign out error:", error);
+    }
+  };
+
+  const getUserInitials = () => {
+    if (!user || !user.email) return "?";
+    return user.email.substring(0, 2).toUpperCase();
+  };
 
   return (
-    <header className="sticky top-0 z-40 w-full bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b">
-      <div className="container flex h-14 items-center">
+    <header className="border-b border-border">
+      <div className="container max-w-6xl mx-auto flex justify-between items-center h-16 px-4">
+        <Link to="/" className="text-xl font-bold">Textify</Link>
+        
         {isMobile ? (
-          <>
-            <MobileMenu />
-            <div className="flex-1 flex justify-center">
-              <Link to="/" className="font-semibold">
-                Textify
-              </Link>
-            </div>
-          </>
+          <div className="flex items-center space-x-2">
+            <ThemeToggle />
+            
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="icon">
+                  <Menu className="h-5 w-5" />
+                  <span className="sr-only">Menu</span>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-[200px]">
+                <DropdownMenuItem asChild>
+                  <Link to="/home" className="w-full">Home</Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link to="/history" className="w-full">History</Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link to="/settings" className="w-full">Settings</Link>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                {user ? (
+                  <>
+                    <div className="px-2 py-1.5 text-sm font-medium">
+                      {user.email}
+                    </div>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={handleSignOut}>
+                      Sign Out
+                    </DropdownMenuItem>
+                  </>
+                ) : (
+                  <DropdownMenuItem onClick={() => navigate('/login')}>
+                    Sign In
+                  </DropdownMenuItem>
+                )}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
         ) : (
           <>
-            <Link to="/" className="mr-6 flex items-center space-x-2">
-              <span className="font-bold">Textify</span>
-            </Link>
-            <nav className="hidden md:flex items-center gap-6 text-sm">
-              {menuItems.map((item) => (
-                <Link 
-                  key={item.to}
-                  to={item.to} 
-                  className="transition-colors hover:text-foreground/80 text-foreground/60"
-                >
-                  {item.label}
-                </Link>
-              ))}
+            <nav className="flex items-center space-x-4">
+              <Link to="/home" className="text-sm hover:text-primary transition-colors">
+                Home
+              </Link>
+              <Link to="/history" className="text-sm hover:text-primary transition-colors">
+                History
+              </Link>
+              <Link to="/settings" className="text-sm hover:text-primary transition-colors">
+                Settings
+              </Link>
             </nav>
-            <div className="flex-1"></div>
+            
+            <div className="flex items-center space-x-4">
+              <ThemeToggle />
+              
+              {user ? (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Avatar className="cursor-pointer hover:opacity-80">
+                      <AvatarFallback>{getUserInitials()}</AvatarFallback>
+                    </Avatar>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <div className="px-2 py-1.5 text-sm font-medium">
+                      {user.email}
+                    </div>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem asChild>
+                      <Link to="/settings" className="cursor-pointer">Settings</Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={handleSignOut} className="cursor-pointer">
+                      Sign Out
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              ) : (
+                <Button variant="outline" onClick={() => navigate('/login')}>
+                  Sign In
+                </Button>
+              )}
+            </div>
           </>
         )}
-        
-        <div className="flex items-center">
-          {!isMobile && <ThemeToggle />}
-        </div>
       </div>
     </header>
   );

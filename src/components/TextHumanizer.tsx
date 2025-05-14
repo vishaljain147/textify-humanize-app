@@ -1,24 +1,22 @@
+
 import React, { useState } from 'react';
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import ToneSelector from "@/components/ToneSelector";
 import { toast } from "@/components/ui/sonner";
-import { Loader2, RefreshCw, AlertTriangle, Check, FileSearch } from "lucide-react";
-import { humanizeText, saveTextEntry, checkPlagiarism, PlagiarismResult } from "@/lib/api";
+import { Loader2, RefreshCw, AlertTriangle, Check } from "lucide-react";
+import { humanizeText, saveTextEntry } from "@/lib/api";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useResponsiveUI } from "@/hooks/useResponsiveUI";
 import { Progress } from "@/components/ui/progress";
-import PlagiarismHighlighter from './PlagiarismHighlighter';
-import { Capacitor } from '@capacitor/core';
 
 export default function TextHumanizer() {
   const [inputText, setInputText] = useState('');
   const [outputText, setOutputText] = useState('');
   const [selectedTone, setSelectedTone] = useState('formal');
   const [isProcessing, setIsProcessing] = useState(false);
-  const [isCheckingPlagiarism, setIsCheckingPlagiarism] = useState(false);
   const [responseStats, setResponseStats] = useState<{
     processingTime?: number;
     source?: 'api' | 'fallback';
@@ -26,13 +24,8 @@ export default function TextHumanizer() {
     similarity?: number;
     plagiarismLevel?: number;
   } | null>(null);
-  const [plagiarismResult, setPlagiarismResult] = useState<PlagiarismResult | null>(null);
-  const [showDetailedPlagiarism, setShowDetailedPlagiarism] = useState(false);
-  const [view, setView] = useState<'input' | 'output'>('input');
-  
   const { user } = useAuth();
   const { isMobile } = useResponsiveUI();
-  const isNative = Capacitor.isNativePlatform();
 
   const preprocessText = (text: string): string => {
     // Simple NLP preprocessing
@@ -76,8 +69,6 @@ export default function TextHumanizer() {
 
     setIsProcessing(true);
     setResponseStats(null);
-    setPlagiarismResult(null);
-    setShowDetailedPlagiarism(false);
     
     const startTime = performance.now();
     
@@ -134,46 +125,11 @@ export default function TextHumanizer() {
       }
       
       toast("Text successfully humanized!");
-      
-      // After processing, switch to output view on mobile
-      if (isMobile) {
-        setView('output');
-      }
     } catch (error) {
       console.error('Error humanizing text:', error);
       toast("Failed to humanize text. Please try again.");
     } finally {
       setIsProcessing(false);
-    }
-  };
-
-  const handleDetailedPlagiarismCheck = async () => {
-    if (!outputText) {
-      toast("No text to check for plagiarism");
-      return;
-    }
-    
-    setIsCheckingPlagiarism(true);
-    
-    try {
-      const result = await checkPlagiarism(outputText);
-      setPlagiarismResult(result);
-      setShowDetailedPlagiarism(true);
-      
-      if (result.plagiarismLevel <= 3) {
-        toast("Great! Your text appears to be highly original.");
-      } else if (result.plagiarismLevel <= 6) {
-        toast("Your text contains some common phrases but is mostly original.");
-      } else {
-        toast("Warning: Your text may contain significant plagiarism.", {
-          icon: <AlertTriangle className="h-4 w-4 text-yellow-500" />,
-        });
-      }
-    } catch (error) {
-      console.error('Error checking plagiarism:', error);
-      toast("Failed to check plagiarism. Please try again.");
-    } finally {
-      setIsCheckingPlagiarism(false);
     }
   };
 
@@ -210,162 +166,124 @@ export default function TextHumanizer() {
     return <AlertTriangle className="h-4 w-4 text-yellow-500" />;
   };
 
-  const MobileToggleView = () => (
-    <div className="flex rounded-lg overflow-hidden border mb-4">
-      <Button 
-        variant={view === 'input' ? 'default' : 'outline'}
-        className="flex-1 rounded-none"
-        onClick={() => setView('input')}
-      >
-        Input
-      </Button>
-      <Button 
-        variant={view === 'output' ? 'default' : 'outline'}
-        className="flex-1 rounded-none"
-        onClick={() => setView('output')}
-        disabled={!outputText}
-      >
-        Output
-      </Button>
-    </div>
-  );
-
   return (
-    <div className={`${isMobile ? 'space-y-4' : 'grid grid-cols-1 lg:grid-cols-2 gap-6'} max-w-6xl mx-auto`}>
-      {isMobile && <MobileToggleView />}
-      
-      {(!isMobile || view === 'input') && (
-        <Card className={isMobile ? 'mb-4' : ''}>
-          <CardContent className="pt-6">
+    <div className={`grid grid-cols-1 ${isMobile ? '' : 'lg:grid-cols-2'} gap-6 max-w-6xl mx-auto`}>
+      <Card>
+        <CardContent className="pt-6">
+          <div className="space-y-4">
+            <h2 className="text-xl font-semibold">Original Text</h2>
+            <Textarea
+              placeholder="Enter your text here..."
+              className="min-h-[150px] md:min-h-[200px]"
+              value={inputText}
+              onChange={(e) => setInputText(e.target.value)}
+            />
             <div className="space-y-4">
-              <h2 className="text-xl font-semibold">Original Text</h2>
-              <Textarea
-                placeholder="Enter your text here..."
-                className="min-h-[150px] md:min-h-[200px]"
-                value={inputText}
-                onChange={(e) => setInputText(e.target.value)}
-              />
-              <div className="space-y-4">
-                <ToneSelector selectedTone={selectedTone} onChange={setSelectedTone} />
-                <Button 
-                  onClick={handleSubmit} 
-                  className="w-full" 
-                  disabled={isProcessing || !inputText}
-                >
-                  {isProcessing ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Processing...
-                    </>
-                  ) : (
-                    "Humanize Text"
-                  )}
-                </Button>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-      
-      {(!isMobile || view === 'output') && (
-        <Card>
-          <CardContent className="pt-6">
-            <div className="space-y-4">
-              <div className="flex justify-between items-center">
-                <h2 className="text-xl font-semibold">Humanized Text</h2>
-                {responseStats && (
-                  <div className="text-xs text-muted-foreground">
-                    {responseStats.source === 'fallback' ? (
-                      <span className="px-2 py-1 bg-yellow-100 text-yellow-800 rounded-md">
-                        Fallback Mode
-                      </span>
-                    ) : (
-                      <span className="px-2 py-1 bg-green-100 text-green-800 rounded-md">
-                        API Mode
-                      </span>
-                    )}
-                  </div>
+              <ToneSelector selectedTone={selectedTone} onChange={setSelectedTone} />
+              <Button 
+                onClick={handleSubmit} 
+                className="w-full" 
+                disabled={isProcessing || !inputText}
+              >
+                {isProcessing ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Processing...
+                  </>
+                ) : (
+                  "Humanize Text"
                 )}
-              </div>
-              <Textarea
-                placeholder="Humanized text will appear here..."
-                className="min-h-[150px] md:min-h-[200px]"
-                value={outputText}
-                readOnly
-              />
-              
+              </Button>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+      
+      <Card>
+        <CardContent className="pt-6">
+          <div className="space-y-4">
+            <div className="flex justify-between items-center">
+              <h2 className="text-xl font-semibold">Humanized Text</h2>
               {responseStats && (
-                <div className="text-sm border rounded-md p-3 bg-muted/50 space-y-3">
-                  <h3 className="font-medium mb-1">Analysis</h3>
-                  <div className="grid grid-cols-2 gap-2">
-                    <div>Processing time: <span className="font-medium">{responseStats.processingTime}ms</span></div>
-                    <div>Similarity: <span className="font-medium">{Math.round(responseStats.similarity! * 100)}%</span></div>
-                    <div>Original words: <span className="font-medium">{responseStats.wordCount?.original}</span></div>
-                    <div>Humanized words: <span className="font-medium">{responseStats.wordCount?.humanized}</span></div>
-                  </div>
-                  
-                  {plagiarismResult ? (
-                    <div className="space-y-2 pt-1 border-t">
-                      <PlagiarismHighlighter 
-                        text={outputText}
-                        plagiarismLevel={plagiarismResult.plagiarismLevel}
-                        plagiarizedSections={plagiarismResult.plagiarizedSections}
-                        showDetailed={showDetailedPlagiarism}
-                      />
-                    </div>
-                  ) : responseStats.plagiarismLevel !== undefined && (
-                    <div className="space-y-2 pt-1 border-t">
-                      <PlagiarismHighlighter 
-                        text={outputText}
-                        plagiarismLevel={responseStats.plagiarismLevel}
-                        plagiarizedSections={[]}
-                        showDetailed={false}
-                      />
-                    </div>
+                <div className="text-xs text-muted-foreground">
+                  {responseStats.source === 'fallback' ? (
+                    <span className="px-2 py-1 bg-yellow-100 text-yellow-800 rounded-md">
+                      Fallback Mode
+                    </span>
+                  ) : (
+                    <span className="px-2 py-1 bg-green-100 text-green-800 rounded-md">
+                      API Mode
+                    </span>
                   )}
                 </div>
               )}
-              
-              <div className="flex gap-2 flex-wrap">
-                <Button 
-                  onClick={handleCopyToClipboard} 
-                  variant="outline" 
-                  className="flex-1"
-                  disabled={!outputText}
-                >
-                  Copy
-                </Button>
-                {outputText && !isCheckingPlagiarism && !showDetailedPlagiarism && (
-                  <Button
-                    onClick={handleDetailedPlagiarismCheck}
-                    variant="outline"
-                    className="flex items-center gap-1"
-                    disabled={isProcessing || isCheckingPlagiarism}
-                  >
-                    {isCheckingPlagiarism ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : (
-                      <FileSearch className="h-4 w-4" />
-                    )}
-                    <span className="hidden sm:inline">Check Plagiarism</span>
-                  </Button>
-                )}
-                {outputText && (
-                  <Button
-                    onClick={handleSubmit}
-                    variant="outline"
-                    size="icon"
-                    title="Retry humanization"
-                    disabled={isProcessing}
-                  >
-                    <RefreshCw className="h-4 w-4" />
-                  </Button>
+            </div>
+            <Textarea
+              placeholder="Humanized text will appear here..."
+              className="min-h-[150px] md:min-h-[200px]"
+              value={outputText}
+              readOnly
+            />
+            
+            {responseStats && (
+              <div className="text-sm border rounded-md p-3 bg-muted/50 space-y-3">
+                <h3 className="font-medium mb-1">Analysis</h3>
+                <div className="grid grid-cols-2 gap-2">
+                  <div>Processing time: <span className="font-medium">{responseStats.processingTime}ms</span></div>
+                  <div>Similarity: <span className="font-medium">{Math.round(responseStats.similarity! * 100)}%</span></div>
+                  <div>Original words: <span className="font-medium">{responseStats.wordCount?.original}</span></div>
+                  <div>Humanized words: <span className="font-medium">{responseStats.wordCount?.humanized}</span></div>
+                </div>
+                
+                {responseStats.plagiarismLevel !== undefined && (
+                  <div className="space-y-2 pt-1 border-t">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-1.5">
+                        {getPlagiarismIcon(responseStats.plagiarismLevel)}
+                        <span>Plagiarism Level: <span className="font-medium">{getPlagiarismLevelText(responseStats.plagiarismLevel)}</span></span>
+                      </div>
+                      <span className="text-xs">{responseStats.plagiarismLevel}/10</span>
+                    </div>
+                    <Progress 
+                      value={responseStats.plagiarismLevel * 10} 
+                      className={`h-1.5 ${getPlagiarismLevelColor(responseStats.plagiarismLevel)}`}
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      {responseStats.plagiarismLevel <= 3 
+                        ? "This text appears highly original and unique." 
+                        : responseStats.plagiarismLevel <= 6 
+                          ? "This text contains some common phrases but is mostly original." 
+                          : "This text may contain significant portions that match existing content."}
+                    </p>
+                  </div>
                 )}
               </div>
+            )}
+            
+            <div className="flex gap-2">
+              <Button 
+                onClick={handleCopyToClipboard} 
+                variant="outline" 
+                className="flex-1"
+                disabled={!outputText}
+              >
+                Copy to Clipboard
+              </Button>
+              {outputText && (
+                <Button
+                  onClick={handleSubmit}
+                  variant="outline"
+                  size="icon"
+                  title="Retry humanization"
+                  disabled={isProcessing}
+                >
+                  <RefreshCw className="h-4 w-4" />
+                </Button>
+              )}
             </div>
-          </CardContent>
-        </Card>
-      )}
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }
