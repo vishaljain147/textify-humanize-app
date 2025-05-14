@@ -1,1 +1,27 @@
+
 project_id = "jmgymaqzkwtghbqszfjj"
+
+[api]
+enabled = true
+port = 54321
+schemas = ["public", "storage", "graphql_public"]
+
+[db]
+port = 54322
+
+[realtime]
+enabled = true
+
+[storage]
+enabled = true
+
+[auth]
+enabled = true
+site_url = "http://localhost:3000"
+
+[functions]
+[functions.humanize-text]
+verify_jwt = true
+
+[functions.check-plagiarism]
+verify_jwt = false

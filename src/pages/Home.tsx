@@ -21,8 +21,11 @@ export default function Home() {
         <div className="text-center space-y-2">
           <h1 className={`${isMobile ? 'text-3xl' : 'text-4xl'} font-bold`}>AI Text Humanizer</h1>
           <p className="text-base md:text-lg text-muted-foreground">
-            Transform robotic or AI-generated text into natural, human-like writing with plagiarism detection
+            Transform robotic or AI-generated text into natural, human-like writing with advanced plagiarism detection
           </p>
+          <div className="bg-blue-50 text-blue-700 rounded-md p-2 mt-2 text-sm inline-block">
+            Now featuring Undetectable AI's plagiarism detection technology
+          </div>
         </div>
         
         <TextHumanizer />
