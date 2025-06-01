@@ -83,9 +83,13 @@ export const useAuthForm = () => {
   };
 
   const handleSocialLogin = async (provider: 'google') => {
+    setIsLoading(true);
+    
     try {
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider,
+      console.log('Starting Google OAuth login...');
+      
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
         options: {
           redirectTo: `${window.location.origin}/home`,
           queryParams: {
@@ -95,12 +99,22 @@ export const useAuthForm = () => {
         }
       });
       
+      console.log('Google OAuth response:', { data, error });
+      
       if (error) {
-        throw new Error(`${provider} login failed. Please try again.`);
+        console.error('Google OAuth error:', error);
+        throw new Error(`Google login failed: ${error.message}`);
       }
+
+      // The redirect will happen automatically, so we don't need to do anything else here
+      console.log('Google OAuth initiated successfully, redirecting...');
+      
     } catch (error: any) {
-      toast(error.message || 'Social login failed');
+      console.error('Social login error:', error);
+      toast(error.message || 'Google login failed. Please try again.');
       throw error;
+    } finally {
+      setIsLoading(false);
     }
   };
 

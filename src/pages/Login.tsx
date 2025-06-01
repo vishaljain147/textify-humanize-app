@@ -23,7 +23,10 @@ export default function Login() {
     // Setup auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
-        if (session) {
+        console.log('Auth state change in Login page:', event, session?.user?.email);
+        
+        if (event === 'SIGNED_IN' && session) {
+          console.log('User signed in, redirecting to home...');
           navigate('/home');
         }
       }
