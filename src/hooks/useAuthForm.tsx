@@ -88,14 +88,19 @@ export const useAuthForm = () => {
     try {
       console.log('Starting Google OAuth login...');
       
+      // Check if we're in development or production
+      const isDevelopment = window.location.hostname === 'localhost';
+      const baseUrl = isDevelopment ? 'http://localhost:3000' : window.location.origin;
+      
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}/home`,
+          redirectTo: `${baseUrl}/home`,
           queryParams: {
             access_type: 'offline',
-            prompt: 'consent',
-          }
+            prompt: 'select_account',
+          },
+          skipBrowserRedirect: false
         }
       });
       
@@ -103,15 +108,38 @@ export const useAuthForm = () => {
       
       if (error) {
         console.error('Google OAuth error:', error);
-        throw new Error(`Google login failed: ${error.message}`);
+        
+        // Handle specific Google OAuth errors
+        if (error.message.includes('oauth')) {
+          throw new Error('Google login is not properly configured. Please contact support.');
+        } else if (error.message.includes('redirect')) {
+          throw new Error('Redirect configuration error. Please check your settings.');
+        } else if (error.message.includes('popup')) {
+          throw new Error('Popup was blocked. Please allow popups and try again.');
+        } else {
+          throw new Error(`Google login failed: ${error.message}`);
+        }
       }
 
-      // The redirect will happen automatically, so we don't need to do anything else here
+      // For OAuth, the redirect happens automatically
       console.log('Google OAuth initiated successfully, redirecting...');
+      toast("Redirecting to Google...");
       
     } catch (error: any) {
       console.error('Social login error:', error);
-      toast(error.message || 'Google login failed. Please try again.');
+      
+      // Provide user-friendly error messages
+      let errorMessage = 'Google login failed. Please try again.';
+      
+      if (error.message.includes('popup')) {
+        errorMessage = 'Please allow popups in your browser and try again.';
+      } else if (error.message.includes('network')) {
+        errorMessage = 'Network error. Please check your connection and try again.';
+      } else if (error.message.includes('configuration')) {
+        errorMessage = 'Google login is not properly set up. Please contact support.';
+      }
+      
+      toast(errorMessage);
       throw error;
     } finally {
       setIsLoading(false);
